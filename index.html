@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prayer Times — London</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at top, #083829 0%, #031711 100%);
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4vh 5vw;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #125440;
+      padding-bottom: 3vh;
+    }
+    .location {
+      font-size: 2.6rem;
+      font-weight: bold;
+      color: #50c878;
+    }
+    .dates {
+      font-size: 1.4rem;
+      color: #a7d7c5;
+      margin-top: 8px;
+    }
+    .clock-box {
+      text-align: right;
+    }
+    #clock {
+      font-size: 4.5rem;
+      font-weight: bold;
+      color: #ecfdf5;
+      line-height: 1;
+    }
+    #countdown {
+      font-size: 1.4rem;
+      color: #50c878;
+      margin-top: 8px;
+    }
+    .prayers-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 2vw;
+      margin: auto 0;
+    }
+    .prayer-card {
+      flex: 1;
+      background: #072b20;
+      border: 3px solid #125440;
+      border-radius: 18px;
+      padding: 5vh 1vw;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .prayer-card.next {
+      background: #0d4a38;
+      border-color: #10b981;
+      box-shadow: 0 0 28px rgba(16, 185, 129, 0.35);
+      transform: scale(1.04);
+    }
+    .prayer-name {
+      font-size: 1.8rem;
+      color: #9ed4c0;
+      margin-bottom: 2vh;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .prayer-card.next .prayer-name {
+      color: #ffffff;
+      font-weight: bold;
+    }
+    .prayer-time {
+      font-size: 3.4rem;
+      font-weight: bold;
+      color: #34d399;
+    }
+    .prayer-card.next .prayer-time {
+      color: #f3d27a;
+    }
+    .next-badge {
+      display: inline-block;
+      margin-top: 1.5vh;
+      padding: 4px 14px;
+      background: #10b981;
+      color: #031711;
+      font-weight: bold;
+      font-size: 0.95rem;
+      border-radius: 20px;
+      visibility: hidden;
+    }
+    .prayer-card.next .next-badge {
+      visibility: visible;
+    }
+    footer {
+      text-align: center;
+      color: #6ea892;
+      font-size: 1.1rem;
+      border-top: 2px solid #125440;
+      padding-top: 2vh;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="location">London, United Kingdom</div>
+      <div class="dates" id="date-display">Loading date...</div>
+    </div>
+    <div class="clock-box">
+      <div id="clock">--:--</div>
+      <div id="countdown">Next prayer in --:--</div>
+    </div>
+  </header>
+
+  <main class="prayers-grid">
+    <div class="prayer-card" id="card-Fajr">
+      <div class="prayer-name">Fajr</div>
+      <div class="prayer-time" id="Fajr">--:--</div>
+      <div class="next-badge">NEXT</div>
+    </div>
+    <div class="prayer-card" id="card-Sunrise">
+      <div class="prayer-name">Sunrise</div>
+      <div class="prayer-time" id="Sunrise">--:--</div>
+      <div class="next-badge">NEXT</div>
+    </div>
+    <div class="prayer-card" id="card-Dhuhr">
+      <div class="prayer-name">Dhuhr</div>
+      <div class="prayer-time" id="Dhuhr">--:--</div>
+      <div class="next-badge">NEXT</div>
+    </div>
+    <div class="prayer-card" id="card-Asr">
+      <div class="prayer-name">Asr</div>
+      <div class="prayer-time" id="Asr">--:--</div>
+      <div class="next-badge">NEXT</div>
+    </div>
+    <div class="prayer-card" id="card-Maghrib">
+      <div class="prayer-name">Maghrib</div>
+      <div class="prayer-time" id="Maghrib">--:--</div>
+      <div class="next-badge">NEXT</div>
+    </div>
+    <div class="prayer-card" id="card-Isha">
+      <div class="prayer-name">Isha</div>
+      <div class="prayer-time" id="Isha">--:--</div>
+      <div class="next-badge">NEXT</div>
+    </div>
+  </main>
+
+  <footer>
+    Muslim World League (Method 3) • Live Prayer Timetable
+  </footer>
+
+  <script>
+    const PRAYER_LIST = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
+    let todayTimings = {};
+
+    function loadPrayerTimes() {
+      const url = "https://api.aladhan.com/v1/timingsByCity?city=London&country=United%20Kingdom&method=3";
+      fetch(url)
+        .then(res => res.json())
+        .then(json => {
+          todayTimings = json.data.timings;
+          PRAYER_LIST.forEach(prayer => {
+            const cleanTime = todayTimings[prayer].split(" ")[0];
+            todayTimings[prayer] = cleanTime;
+            document.getElementById(prayer).textContent = cleanTime;
+          });
+
+          const greg = json.data.date.readable;
+          const hijri = json.data.date.hijri;
+          document.getElementById("date-display").textContent =
+            `${greg}  •  ${hijri.day} ${hijri.month.en} ${hijri.year} AH`;
+
+          updateClockAndNextPrayer();
+        })
+        .catch(() => {
+          document.getElementById("date-display").textContent = "Unable to load prayer times — check internet";
+        });
+    }
+
+    function updateClockAndNextPrayer() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      if (!todayTimings.Fajr) return;
+
+      PRAYER_LIST.forEach(p => document.getElementById("card-" + p).classList.remove("next"));
+
+      let nextPrayer = null;
+      let nextTimeObj = null;
+
+      for (let i = 0; i < PRAYER_LIST.length; i++) {
+        const name = PRAYER_LIST[i];
+        const [hours, mins] = todayTimings[name].split(":").map(Number);
+        const prayerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, mins, 0);
+
+        if (prayerDate > now) {
+          nextPrayer = name;
+          nextTimeObj = prayerDate;
+          break;
+        }
+      }
+
+      if (!nextPrayer) {
+        nextPrayer = "Fajr";
+        const [hours, mins] = todayTimings["Fajr"].split(":").map(Number);
+        nextTimeObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, hours, mins, 0);
+      }
+
+      document.getElementById("card-" + nextPrayer).classList.add("next");
+
+      const diffMs = nextTimeObj - now;
+      const diffHrs = Math.floor(diffMs / 3600000);
+      const diffMins = Math.floor((diffMs % 3600000) / 60000);
+      document.getElementById("countdown").textContent =
+        `${nextPrayer} in ${diffHrs}h ${diffMins}m`;
+    }
+
+    loadPrayerTimes();
+    setInterval(updateClockAndNextPrayer, 1000);
+    setInterval(loadPrayerTimes, 3600000);
+  </script>
+</body>
+</html>
