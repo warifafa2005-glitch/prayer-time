@@ -7,19 +7,26 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
+      background: #041f17;
       background: radial-gradient(circle at top, #083829 0%, #031711 100%);
       color: #ffffff;
       font-family: Arial, sans-serif;
       height: 100vh;
+      display: -webkit-flex;
       display: flex;
+      -webkit-flex-direction: column;
       flex-direction: column;
+      -webkit-justify-content: space-between;
       justify-content: space-between;
       padding: 4vh 5vw;
       overflow: hidden;
     }
     header {
+      display: -webkit-flex;
       display: flex;
+      -webkit-justify-content: space-between;
       justify-content: space-between;
+      -webkit-align-items: center;
       align-items: center;
       border-bottom: 2px solid #125440;
       padding-bottom: 3vh;
@@ -49,24 +56,27 @@
       margin-top: 8px;
     }
     .prayers-grid {
+      display: -webkit-flex;
       display: flex;
+      -webkit-justify-content: space-between;
       justify-content: space-between;
-      gap: 1.8vw;
       margin: auto 0;
     }
     .prayer-card {
+      -webkit-flex: 1;
       flex: 1;
+      margin: 0 0.8vw;
       background: #072b20;
       border: 3px solid #125440;
       border-radius: 18px;
       padding: 5vh 1vw;
       text-align: center;
-      transition: all 0.3s ease;
     }
     .prayer-card.next {
       background: #0d4a38;
       border-color: #10b981;
       box-shadow: 0 0 28px rgba(16, 185, 129, 0.35);
+      -webkit-transform: scale(1.04);
       transform: scale(1.04);
     }
     .prayer-name {
@@ -103,17 +113,16 @@
       visibility: visible;
     }
     footer {
+      display: -webkit-flex;
       display: flex;
+      -webkit-justify-content: space-between;
       justify-content: space-between;
+      -webkit-align-items: center;
       align-items: center;
       color: #6ea892;
       font-size: 1.1rem;
       border-top: 2px solid #125440;
       padding-top: 2vh;
-    }
-    .btn-group {
-      display: flex;
-      gap: 12px;
     }
     button.tv-btn {
       background: #10b981;
@@ -121,6 +130,7 @@
       border: 3px solid transparent;
       border-radius: 10px;
       padding: 10px 20px;
+      margin-left: 10px;
       font-size: 1.05rem;
       font-weight: bold;
       cursor: pointer;
@@ -183,173 +193,216 @@
 
   <footer>
     <span id="audio-status">Auto-Adhan Ready (Press any remote button once if TV mutes it)</span>
-    <div class="btn-group">
+    <div>
       <button class="tv-btn" id="fajr-btn" onclick="toggleAudio('fajr')">Test Fajr Adhan</button>
       <button class="tv-btn" id="regular-btn" onclick="toggleAudio('regular')">Test Regular Adhan</button>
     </div>
   </footer>
 
-  <!-- Custom Fajr Adhan hosted directly in your GitHub repo -->
-  <audio id="fajr-audio" preload="auto">
-    <source src="./fajr.mp3" type="audio/mpeg">
-  </audio>
-
-  <!-- Regular Adhan for Dhuhr, Asr, Maghrib, Isha -->
-  <audio id="regular-audio" preload="auto">
-    <source src="https://raw.githubusercontent.com/Kiwifu/adhan-mp3/main/Ali_Ibn_Ahmad_Mala_-_HQ_(%D8%B9%D9%84%D9%8A_%D8%A8%D9%86_%D8%A3%D8%AD%D9%85%D8%AF_%D9%85%D9%84%D8%A7).mp3" type="audio/mpeg">
-  </audio>
+  <audio id="fajr-audio" src="./fajr.mp3" preload="auto"></audio>
+  <audio id="regular-audio" src="https://raw.githubusercontent.com/Kiwifu/adhan-mp3/main/Ali_Ibn_Ahmad_Mala_-_HQ_(%D8%B9%D9%84%D9%8A_%D8%A8%D9%86_%D8%A3%D8%AD%D9%85%D8%AF_%D9%85%D9%84%D8%A7).mp3" preload="auto"></audio>
 
   <script>
-    const PRAYER_LIST = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
-    const ADHAN_PRAYERS = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
-    let todayTimings = {};
-    let lastPlayedKey = "";
-    let audioUnlocked = false;
-    let hasLoadedOnce = false;
+    var PRAYER_LIST = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
+    var ADHAN_PRAYERS = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
+    var todayTimings = {};
+    var lastPlayedKey = "";
+    var audioUnlocked = false;
+    var hasLoadedOnce = false;
 
-    const fajrAudio = document.getElementById("fajr-audio");
-    const regularAudio = document.getElementById("regular-audio");
-    const fajrBtn = document.getElementById("fajr-btn");
-    const regularBtn = document.getElementById("regular-btn");
-    const audioStatus = document.getElementById("audio-status");
+    var fajrAudio = document.getElementById("fajr-audio");
+    var regularAudio = document.getElementById("regular-audio");
+    var fajrBtn = document.getElementById("fajr-btn");
+    var regularBtn = document.getElementById("regular-btn");
+    var audioStatus = document.getElementById("audio-status");
+
+    function pad2(n) {
+      return n < 10 ? "0" + n : "" + n;
+    }
 
     function unlockAudioSilently() {
       if (audioUnlocked) return;
-      [fajrAudio, regularAudio].forEach(el => {
-        el.muted = true;
-        el.play().then(() => {
-          el.pause();
-          el.currentTime = 0;
-          el.muted = false;
-        }).catch(() => {
-          el.muted = false;
-        });
-      });
+      var list = [fajrAudio, regularAudio];
+      for (var i = 0; i < list.length; i++) {
+        (function(el) {
+          el.muted = true;
+          var p = el.play();
+          if (p && p.then) {
+            p.then(function() {
+              el.pause();
+              el.currentTime = 0;
+              el.muted = false;
+            }).catch(function() {
+              el.muted = false;
+            });
+          } else {
+            el.pause();
+            el.currentTime = 0;
+            el.muted = false;
+          }
+        })(list[i]);
+      }
       audioUnlocked = true;
-      audioStatus.textContent = "TV Audio Unlocked — Fajr & Daily Adhans armed";
+      audioStatus.innerHTML = "TV Audio Unlocked — Fajr &amp; Daily Adhans armed";
     }
+
     document.addEventListener("click", unlockAudioSilently);
     document.addEventListener("keydown", unlockAudioSilently);
 
     function stopAllAudio() {
       fajrAudio.pause();
       fajrAudio.currentTime = 0;
-      fajrBtn.textContent = "Test Fajr Adhan";
-      fajrBtn.classList.remove("playing");
+      fajrBtn.innerHTML = "Test Fajr Adhan";
+      fajrBtn.className = "tv-btn";
 
       regularAudio.pause();
       regularAudio.currentTime = 0;
-      regularBtn.textContent = "Test Regular Adhan";
-      regularBtn.classList.remove("playing");
+      regularBtn.innerHTML = "Test Regular Adhan";
+      regularBtn.className = "tv-btn";
+    }
+
+    function playMediaSafe(player, btn, stopLabel, statusMsg) {
+      player.muted = false;
+      var p = player.play();
+      if (p && p.then) {
+        p.then(function() {
+          btn.innerHTML = stopLabel;
+          btn.className = "tv-btn playing";
+          audioStatus.innerHTML = statusMsg;
+        }).catch(function() {
+          audioStatus.innerHTML = "Could not play audio — check TV volume or connection";
+        });
+      } else {
+        btn.innerHTML = stopLabel;
+        btn.className = "tv-btn playing";
+        audioStatus.innerHTML = statusMsg;
+      }
     }
 
     function toggleAudio(type) {
       audioUnlocked = true;
-      const targetAudio = type === "fajr" ? fajrAudio : regularAudio;
-      const targetBtn = type === "fajr" ? fajrBtn : regularBtn;
-      const wasPlaying = !targetAudio.paused;
+      var targetAudio = type === "fajr" ? fajrAudio : regularAudio;
+      var targetBtn = type === "fajr" ? fajrBtn : regularBtn;
+      var wasPlaying = !targetAudio.paused;
 
       stopAllAudio();
 
       if (!wasPlaying) {
-        targetAudio.muted = false;
-        targetAudio.play().then(() => {
-          targetBtn.textContent = type === "fajr" ? "Stop Fajr Adhan" : "Stop Regular Adhan";
-          targetBtn.classList.add("playing");
-          audioStatus.textContent = type === "fajr" ? "Playing Fajr Adhan..." : "Playing Regular Adhan...";
-        }).catch(() => {
-          audioStatus.textContent = "Could not play audio — check fajr.mp3 upload or TV volume";
-        });
+        playMediaSafe(
+          targetAudio,
+          targetBtn,
+          type === "fajr" ? "Stop Fajr Adhan" : "Stop Regular Adhan",
+          type === "fajr" ? "Playing Fajr Adhan..." : "Playing Regular Adhan..."
+        );
       } else {
-        audioStatus.textContent = "TV Audio Unlocked — Fajr & Daily Adhans armed";
+        audioStatus.innerHTML = "TV Audio Unlocked — Fajr &amp; Daily Adhans armed";
       }
     }
 
-    [fajrAudio, regularAudio].forEach(el => {
-      el.addEventListener("ended", () => {
-        stopAllAudio();
-        audioStatus.textContent = "TV Audio Unlocked — Fajr & Daily Adhans armed";
-      });
-    });
+    fajrAudio.onended = function() {
+      stopAllAudio();
+      audioStatus.innerHTML = "TV Audio Unlocked — Fajr &amp; Daily Adhans armed";
+    };
+    regularAudio.onended = function() {
+      stopAllAudio();
+      audioStatus.innerHTML = "TV Audio Unlocked — Fajr &amp; Daily Adhans armed";
+    };
 
     function setFallbackDate() {
-      const now = new Date();
-      document.getElementById("date-display").textContent = now.toLocaleDateString("en-GB", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      });
+      var now = new Date();
+      var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      document.getElementById("date-display").innerHTML =
+        days[now.getDay()] + ", " + now.getDate() + " " + months[now.getMonth()] + " " + now.getFullYear();
+    }
+
+    function applyApiData(json) {
+      todayTimings = json.data.timings;
+      for (var i = 0; i < PRAYER_LIST.length; i++) {
+        var prayer = PRAYER_LIST[i];
+        var cleanTime = todayTimings[prayer].split(" ")[0];
+        todayTimings[prayer] = cleanTime;
+        document.getElementById(prayer).innerHTML = cleanTime;
+      }
+
+      var greg = json.data.date.readable;
+      var hijri = json.data.date.hijri;
+      document.getElementById("date-display").innerHTML =
+        greg + " &nbsp;&bull;&nbsp; " + hijri.day + " " + hijri.month.en + " " + hijri.year + " AH";
+
+      hasLoadedOnce = true;
+      updateClockAndNextPrayer();
+    }
+
+    function requestJson(url, onSuccess, onError) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              onSuccess(JSON.parse(xhr.responseText));
+            } catch (e) {
+              if (onError) onError();
+            }
+          } else {
+            if (onError) onError();
+          }
+        }
+      };
+      xhr.onerror = function() {
+        if (onError) onError();
+      };
+      xhr.send();
     }
 
     function loadPrayerTimes() {
-      const url = "https://api.aladhan.com/v1/timingsByCity?city=London&country=United%20Kingdom&method=3";
-      fetch(url)
-        .then(res => res.json())
-        .then(json => {
-          todayTimings = json.data.timings;
-          PRAYER_LIST.forEach(prayer => {
-            const cleanTime = todayTimings[prayer].split(" ")[0];
-            todayTimings[prayer] = cleanTime;
-            document.getElementById(prayer).textContent = cleanTime;
-          });
+      var directUrl = "https://api.aladhan.com/v1/timingsByCity?city=London&country=United%20Kingdom&method=3";
+      var proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(directUrl);
 
-          const greg = json.data.date.readable;
-          const hijri = json.data.date.hijri;
-          document.getElementById("date-display").textContent =
-            `${greg}  •  ${hijri.day} ${hijri.month.en} ${hijri.year} AH`;
-
-          hasLoadedOnce = true;
-          updateClockAndNextPrayer();
-        })
-        .catch(() => {
-          if (!hasLoadedOnce) {
-            setFallbackDate();
-          }
+      requestJson(directUrl, applyApiData, function() {
+        // Fallback through CORS/SSL proxy if TV blocks api.aladhan.com certificate
+        requestJson(proxyUrl, applyApiData, function() {
+          if (!hasLoadedOnce) setFallbackDate();
         });
+      });
     }
 
     function updateClockAndNextPrayer() {
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      const currentHHMM = `${hh}:${mm}`;
-
-      // Always update the top-right clock immediately
-      document.getElementById("clock").textContent = currentHHMM;
+      var now = new Date();
+      var currentHHMM = pad2(now.getHours()) + ":" + pad2(now.getMinutes());
+      document.getElementById("clock").innerHTML = currentHHMM;
 
       if (!todayTimings.Fajr) return;
 
-      ADHAN_PRAYERS.forEach(prayer => {
-        const triggerKey = `${now.toDateString()}-${prayer}`;
+      for (var i = 0; i < ADHAN_PRAYERS.length; i++) {
+        var prayer = ADHAN_PRAYERS[i];
+        var triggerKey = now.toDateString() + "-" + prayer;
         if (todayTimings[prayer] === currentHHMM && lastPlayedKey !== triggerKey) {
           lastPlayedKey = triggerKey;
           stopAllAudio();
 
-          const isFajr = prayer === "Fajr";
-          const player = isFajr ? fajrAudio : regularAudio;
-          const btn = isFajr ? fajrBtn : regularBtn;
-
-          player.muted = false;
-          player.play().then(() => {
-            btn.textContent = isFajr ? "Stop Fajr Adhan" : "Stop Regular Adhan";
-            btn.classList.add("playing");
-            audioStatus.textContent = `Time for ${prayer} — Playing ${isFajr ? "Fajr " : ""}Adhan`;
-          }).catch(() => {
-            audioStatus.textContent = `Time for ${prayer}! (Press OK on remote to unmute)`;
-          });
+          var isFajr = (prayer === "Fajr");
+          playMediaSafe(
+            isFajr ? fajrAudio : regularAudio,
+            isFajr ? fajrBtn : regularBtn,
+            isFajr ? "Stop Fajr Adhan" : "Stop Regular Adhan",
+            "Time for " + prayer + " — Playing " + (isFajr ? "Fajr " : "") + "Adhan"
+          );
         }
-      });
+      }
 
-      PRAYER_LIST.forEach(p => document.getElementById("card-" + p).classList.remove("next"));
+      for (var j = 0; j < PRAYER_LIST.length; j++) {
+        document.getElementById("card-" + PRAYER_LIST[j]).className = "prayer-card";
+      }
 
-      let nextPrayer = null;
-      let nextTimeObj = null;
+      var nextPrayer = null;
+      var nextTimeObj = null;
 
-      for (let i = 0; i < PRAYER_LIST.length; i++) {
-        const name = PRAYER_LIST[i];
-        const [hours, mins] = todayTimings[name].split(":").map(Number);
-        const prayerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, mins, 0);
+      for (var k = 0; k < PRAYER_LIST.length; k++) {
+        var name = PRAYER_LIST[k];
+        var parts = todayTimings[name].split(":");
+        var prayerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(parts[0], 10), parseInt(parts[1], 10), 0);
 
         if (prayerDate > now) {
           nextPrayer = name;
@@ -360,20 +413,20 @@
 
       if (!nextPrayer) {
         nextPrayer = "Fajr";
-        const [hours, mins] = todayTimings["Fajr"].split(":").map(Number);
-        nextTimeObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, hours, mins, 0);
+        var fajrParts = todayTimings["Fajr"].split(":");
+        nextTimeObj = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, parseInt(fajrParts[0], 10), parseInt(fajrParts[1], 10), 0);
       }
 
-      document.getElementById("card-" + nextPrayer).classList.add("next");
+      document.getElementById("card-" + nextPrayer).className = "prayer-card next";
 
-      const diffMs = nextTimeObj - now;
-      const diffHrs = Math.floor(diffMs / 3600000);
-      const diffMins = Math.floor((diffMs % 3600000) / 60000);
-      document.getElementById("countdown").textContent =
-        `${nextPrayer} in ${diffHrs}h ${diffMins}m`;
+      var diffMs = nextTimeObj - now;
+      var diffHrs = Math.floor(diffMs / 3600000);
+      var diffMins = Math.floor((diffMs % 3600000) / 60000);
+      document.getElementById("countdown").innerHTML =
+        nextPrayer + " in " + diffHrs + "h " + diffMins + "m";
     }
 
-    window.onload = () => {
+    window.onload = function() {
       fajrBtn.focus();
       setFallbackDate();
       updateClockAndNextPrayer();
