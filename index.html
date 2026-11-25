@@ -51,7 +51,7 @@
     .prayers-grid {
       display: flex;
       justify-content: space-between;
-      gap: 2vw;
+      gap: 1.8vw;
       margin: auto 0;
     }
     .prayer-card {
@@ -81,7 +81,7 @@
       font-weight: bold;
     }
     .prayer-time {
-      font-size: 3.4rem;
+      font-size: 3.3rem;
       font-weight: bold;
       color: #34d399;
     }
@@ -111,17 +111,25 @@
       border-top: 2px solid #125440;
       padding-top: 2vh;
     }
-    #audio-btn {
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+    button.tv-btn {
       background: #10b981;
       color: #031711;
-      border: 3px solid #ecfdf5;
+      border: 3px solid transparent;
       border-radius: 10px;
-      padding: 10px 22px;
-      font-size: 1.1rem;
+      padding: 10px 20px;
+      font-size: 1.05rem;
       font-weight: bold;
       cursor: pointer;
     }
-    #audio-btn.playing {
+    button.tv-btn:focus {
+      border-color: #ecfdf5;
+      outline: none;
+    }
+    button.tv-btn.playing {
       background: #f3d27a;
       color: #031711;
     }
@@ -175,11 +183,19 @@
 
   <footer>
     <span id="audio-status">Auto-Adhan Ready (Press any remote button once if TV mutes it)</span>
-    <button id="audio-btn" onclick="toggleAdhan()">Test Adhan</button>
+    <div class="btn-group">
+      <button class="tv-btn" id="fajr-btn" onclick="toggleAudio('fajr')">Test Fajr Adhan</button>
+      <button class="tv-btn" id="regular-btn" onclick="toggleAudio('regular')">Test Regular Adhan</button>
+    </div>
   </footer>
 
-  <!-- Adhan MP3 (Makkah / Ali Ibn Ahmad Mala) -->
-  <audio id="adhan-audio" preload="auto">
+  <!-- Custom Fajr Adhan hosted directly in your GitHub repo -->
+  <audio id="fajr-audio" preload="auto">
+    <source src="./fajr.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Regular Adhan for Dhuhr, Asr, Maghrib, Isha -->
+  <audio id="regular-audio" preload="auto">
     <source src="https://raw.githubusercontent.com/Kiwifu/adhan-mp3/main/Ali_Ibn_Ahmad_Mala_-_HQ_(%D8%B9%D9%84%D9%8A_%D8%A8%D9%86_%D8%A3%D8%AD%D9%85%D8%AF_%D9%85%D9%84%D8%A7).mp3" type="audio/mpeg">
   </audio>
 
@@ -189,53 +205,82 @@
     let todayTimings = {};
     let lastPlayedKey = "";
     let audioUnlocked = false;
+    let hasLoadedOnce = false;
 
-    const adhanAudio = document.getElementById("adhan-audio");
-    const audioBtn = document.getElementById("audio-btn");
+    const fajrAudio = document.getElementById("fajr-audio");
+    const regularAudio = document.getElementById("regular-audio");
+    const fajrBtn = document.getElementById("fajr-btn");
+    const regularBtn = document.getElementById("regular-btn");
     const audioStatus = document.getElementById("audio-status");
 
-    // Silently unlock TV audio permission on ANY click or remote key press
     function unlockAudioSilently() {
       if (audioUnlocked) return;
-      adhanAudio.muted = true;
-      adhanAudio.play().then(() => {
-        adhanAudio.pause();
-        adhanAudio.currentTime = 0;
-        adhanAudio.muted = false;
-        audioUnlocked = true;
-        audioStatus.textContent = "TV Audio Unlocked — Adhan will play automatically at prayer time";
-      }).catch(() => {
-        adhanAudio.muted = false;
+      [fajrAudio, regularAudio].forEach(el => {
+        el.muted = true;
+        el.play().then(() => {
+          el.pause();
+          el.currentTime = 0;
+          el.muted = false;
+        }).catch(() => {
+          el.muted = false;
+        });
       });
+      audioUnlocked = true;
+      audioStatus.textContent = "TV Audio Unlocked — Fajr & Daily Adhans armed";
     }
     document.addEventListener("click", unlockAudioSilently);
     document.addEventListener("keydown", unlockAudioSilently);
 
-    function toggleAdhan() {
+    function stopAllAudio() {
+      fajrAudio.pause();
+      fajrAudio.currentTime = 0;
+      fajrBtn.textContent = "Test Fajr Adhan";
+      fajrBtn.classList.remove("playing");
+
+      regularAudio.pause();
+      regularAudio.currentTime = 0;
+      regularBtn.textContent = "Test Regular Adhan";
+      regularBtn.classList.remove("playing");
+    }
+
+    function toggleAudio(type) {
       audioUnlocked = true;
-      adhanAudio.muted = false;
-      if (!adhanAudio.paused) {
-        adhanAudio.pause();
-        adhanAudio.currentTime = 0;
-        audioBtn.textContent = "Test Adhan";
-        audioBtn.classList.remove("playing");
-        audioStatus.textContent = "TV Audio Unlocked — Adhan will play automatically at prayer time";
-      } else {
-        adhanAudio.play().then(() => {
-          audioBtn.textContent = "Stop Adhan";
-          audioBtn.classList.add("playing");
-          audioStatus.textContent = "Playing Adhan...";
+      const targetAudio = type === "fajr" ? fajrAudio : regularAudio;
+      const targetBtn = type === "fajr" ? fajrBtn : regularBtn;
+      const wasPlaying = !targetAudio.paused;
+
+      stopAllAudio();
+
+      if (!wasPlaying) {
+        targetAudio.muted = false;
+        targetAudio.play().then(() => {
+          targetBtn.textContent = type === "fajr" ? "Stop Fajr Adhan" : "Stop Regular Adhan";
+          targetBtn.classList.add("playing");
+          audioStatus.textContent = type === "fajr" ? "Playing Fajr Adhan..." : "Playing Regular Adhan...";
         }).catch(() => {
-          audioStatus.textContent = "Could not play audio — check TV volume or connection";
+          audioStatus.textContent = "Could not play audio — check fajr.mp3 upload or TV volume";
         });
+      } else {
+        audioStatus.textContent = "TV Audio Unlocked — Fajr & Daily Adhans armed";
       }
     }
 
-    adhanAudio.addEventListener("ended", () => {
-      audioBtn.textContent = "Test Adhan";
-      audioBtn.classList.remove("playing");
-      audioStatus.textContent = "TV Audio Unlocked — Adhan will play automatically at prayer time";
+    [fajrAudio, regularAudio].forEach(el => {
+      el.addEventListener("ended", () => {
+        stopAllAudio();
+        audioStatus.textContent = "TV Audio Unlocked — Fajr & Daily Adhans armed";
+      });
     });
+
+    function setFallbackDate() {
+      const now = new Date();
+      document.getElementById("date-display").textContent = now.toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    }
 
     function loadPrayerTimes() {
       const url = "https://api.aladhan.com/v1/timingsByCity?city=London&country=United%20Kingdom&method=3";
@@ -254,10 +299,13 @@
           document.getElementById("date-display").textContent =
             `${greg}  •  ${hijri.day} ${hijri.month.en} ${hijri.year} AH`;
 
+          hasLoadedOnce = true;
           updateClockAndNextPrayer();
         })
         .catch(() => {
-          document.getElementById("date-display").textContent = "Unable to load prayer times — check internet";
+          if (!hasLoadedOnce) {
+            setFallbackDate();
+          }
         });
     }
 
@@ -267,21 +315,26 @@
       const mm = String(now.getMinutes()).padStart(2, "0");
       const currentHHMM = `${hh}:${mm}`;
 
+      // Always update the top-right clock immediately
       document.getElementById("clock").textContent = currentHHMM;
 
       if (!todayTimings.Fajr) return;
 
-      // Automatically trigger Adhan when current time matches prayer time
       ADHAN_PRAYERS.forEach(prayer => {
         const triggerKey = `${now.toDateString()}-${prayer}`;
         if (todayTimings[prayer] === currentHHMM && lastPlayedKey !== triggerKey) {
           lastPlayedKey = triggerKey;
-          adhanAudio.muted = false;
-          adhanAudio.currentTime = 0;
-          adhanAudio.play().then(() => {
-            audioBtn.textContent = "Stop Adhan";
-            audioBtn.classList.add("playing");
-            audioStatus.textContent = `Time for ${prayer} — Playing Adhan`;
+          stopAllAudio();
+
+          const isFajr = prayer === "Fajr";
+          const player = isFajr ? fajrAudio : regularAudio;
+          const btn = isFajr ? fajrBtn : regularBtn;
+
+          player.muted = false;
+          player.play().then(() => {
+            btn.textContent = isFajr ? "Stop Fajr Adhan" : "Stop Regular Adhan";
+            btn.classList.add("playing");
+            audioStatus.textContent = `Time for ${prayer} — Playing ${isFajr ? "Fajr " : ""}Adhan`;
           }).catch(() => {
             audioStatus.textContent = `Time for ${prayer}! (Press OK on remote to unmute)`;
           });
@@ -321,7 +374,9 @@
     }
 
     window.onload = () => {
-      audioBtn.focus();
+      fajrBtn.focus();
+      setFallbackDate();
+      updateClockAndNextPrayer();
       loadPrayerTimes();
     };
     setInterval(updateClockAndNextPrayer, 1000);
